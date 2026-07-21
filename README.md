@@ -30,7 +30,9 @@ flowchart LR
 ```
 
 <!-- CAPTURA 01: Data Flow completo -->
-![Mapping Data Flow](docs/images/01_mapping_dataflow.png)
+![Pipeline que ejecuta el Mapping Data Flow](docs/images/01-movies-mapping-pipeline.png)
+
+![Mapping Data Flow completo](docs/images/02-mapping-data-flow.png)
 
 ---
 
@@ -68,7 +70,7 @@ Resultado:
 | 2 | Jumanji (1995) | 1995 |
 
 <!-- CAPTURA 02: configuración de Derived Column -->
-![Derived Column](docs/images/02_derived_column.png)
+La vista completa del Data Flow muestra `YearExtraction`, la agregación `MoviesCount` y los sinks `MoviesClean` y `MoviesByYear`.
 
 ---
 
