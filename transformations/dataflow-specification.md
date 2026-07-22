@@ -1,41 +1,73 @@
-# Especificación del Mapping Data Flow
+# Published ADF specification
 
-## Source: InputCsv
+This document records the Azure Data Factory configuration reviewed in read-only mode on July 22, 2026. It intentionally excludes linked-service configuration, storage paths, credentials and subscription identifiers.
 
-- Formato: Delimited Text
-- Header: true
-- Delimitador: coma
-- Columnas principales:
-  - `movieId`
-  - `title`
-  - `genres`
+## Pipeline: `MoviesMappingFlow`
 
-## Derived Column: YearExtraction
+- Activity name: `Data flow1`
+- Activity type: `ExecuteDataFlow`
+- Data Flow reference: `dataflow1`
+- Compute type: `General`
+- Core count: `8`
+- Trace level: `Fine`
+- Timeout: `12 hours`
+- Retry count: `0`
 
-Nueva columna:
+These are lab configuration values, not a performance or production-sizing recommendation.
+
+## Mapping Data Flow: `dataflow1`
+
+### Source: `Movies`
+
+- Dataset reference: `InputCsv`
+- Projected fields:
+  - `movieId` as string
+  - `title` as string
+  - `genres` as string
+- Schema drift: allowed
+- Schema validation: disabled
+
+### Derived Column: `YearExtraction`
 
 ```text
-year = toInteger(trim(right(title, 6), '()'))
+titleExtraction = toInteger(trim(right(title, 6), '()'))
+title = toString(left(title, length(title)-6))
 ```
 
-## Sink 1: MoviesClean
+The transformation derives an integer year and replaces `title` with the title minus its six-character year suffix.
 
-Columnas:
+### Aggregate: `MoviesCount`
 
-- `movieId`
-- `title`
-- `genres`
-- `year`
+```text
+groupBy(titleExtraction)
+MoviesCount = count()
+```
 
-## Aggregate: MoviesCount
+### Sink: `MoviesClean`
 
-- Group by: `year`
-- Aggregate:
-  - `movie_count = count()`
+- Input stream: `YearExtraction`
+- Dataset reference: `OutputCsv`
+- File name: `movies-clean.csv`
+- Partitioning: one hash partition
+- Schema drift: allowed
+- Schema validation: disabled
 
-## Sink 2: MoviesByYear
+### Sink: `MoviesByYear`
 
-Columnas:
+- Input stream: `MoviesCount`
+- Dataset reference: `OutputCsv`
+- File name: `MoviesByYear.csv`
+- Partitioning: one hash partition
+- Schema drift: allowed
+- Schema validation: disabled
 
-- `year`
-- `movie_count`
+## Production-hardening considerations
+
+1. Validate titles before attempting integer conversion.
+2. Route malformed records to a rejected-record sink.
+3. Apply `trim()` after removing the year suffix.
+4. Enforce an explicit schema where the source contract requires it.
+5. Add row-count and null controls to both outputs.
+6. Select a partition strategy based on output volume instead of forcing one file.
+
+The complete published transformation script is available in [`dataflow-script.txt`](dataflow-script.txt).

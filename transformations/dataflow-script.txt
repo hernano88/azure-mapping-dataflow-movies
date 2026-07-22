@@ -1,0 +1,24 @@
+source(output(
+		movieId as string,
+		title as string,
+		genres as string
+	),
+	allowSchemaDrift: true,
+	validateSchema: false,
+	ignoreNoFilesFound: false) ~> Movies
+Movies derive(titleExtraction = toInteger(trim(right(title, 6), '()' )),
+		title = toString(left(title, length(title)-6))) ~> YearExtraction
+YearExtraction aggregate(groupBy(titleExtraction),
+	MoviesCount = count()) ~> MoviesCount
+YearExtraction sink(allowSchemaDrift: true,
+	validateSchema: false,
+	partitionFileNames:['movies-clean.csv'],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	partitionBy('hash', 1)) ~> MoviesClean
+MoviesCount sink(allowSchemaDrift: true,
+	validateSchema: false,
+	partitionFileNames:['MoviesByYear.csv'],
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true,
+	partitionBy('hash', 1)) ~> MoviesByYear
